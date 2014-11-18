@@ -1,0 +1,158 @@
+apply plugin: 'groovy'
+apply plugin: 'java'
+apply plugin: 'spring-boot'
+apply plugin: 'maven-publish'
+
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
+
+// TO BUILD AND PUBLISH
+//clean build publish
+
+
+group = 'com.digitalriver.servicepoc'
+
+jar {
+	baseName = 'nick-artifact-server'
+	version =  '0.0.1-SNAPSHOT'
+	from sourceSets.main.allSource
+}
+
+configurations.all {
+	// check for updates every build
+	resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+    exclude group: "org.springframework.boot", module: "spring-boot-starter-logging"
+}
+
+
+
+publishing {
+	publications {
+		maven(MavenPublication) {
+			groupId "${project.group}"
+			artifactId "${project.name}"
+			version "${project.jar.version}"
+			artifact sourceJar { classifier "sources" }
+			from components.java
+
+			pom.withXml {
+				asNode().appendNode('parent')
+						.appendNode('groupId', 'org.springframework.boot').parent()
+						.appendNode('artifactId', 'spring-boot-starter-parent').parent()
+						.appendNode('version', '1.1.8.RELEASE')
+
+				asNode().appendNode('repositories').appendNode('repository')
+						.appendNode('id', 'spring-releases').parent()
+						.appendNode('url', 'http://repo.spring.io/libs-release')
+			}
+		}
+	}
+	
+	repositories {
+		maven
+		 {
+			url "http://nexus-master.digitalriverws.net/nexus/content/repositories/team_prismj_snapshots/"
+			credentials{
+				username "deployment"
+				password "deployment123"
+			}
+		}
+		
+	}
+}
+
+task sourceJar(type: Jar) {
+	from sourceSets.main.allJava
+}
+
+
+
+task('execJar', type:Jar, dependsOn: 'jar') {
+	baseName = 'nick-artifact-server'
+	version =  '0.0.1-SNAPSHOT'
+	//classifier = 'exec'
+	from sourceSets.main.output
+}
+
+
+
+buildscript {
+    repositories {
+        maven { url 'http://repo1.maven.org/maven2/' }
+        maven { url "http://repo.spring.io/snapshot/" }
+        maven { url "http://repo.spring.io/milestone/" }
+    }
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:1.2.0.M2")
+    }
+}
+
+repositories {
+    mavenLocal()
+    maven { url 'http://gcartifacts.digitalriver.com/nexus/content/repositories/Internal1/' }
+    maven { url 'http://gcartifacts.digitalriver.com/nexus/content/groups/gCArifacts/' }
+    maven { url 'http://repository.jboss.org/nexus/content/groups/public/' }
+    maven { url 'http://common-spring-aspects.googlecode.com/svn/maven2/' }
+    maven { url 'http://repo1.maven.org/maven2/' }
+    maven { url 'http://nexus-master.digitalriverws.net/nexus/content/repositories/team_prismj_snapshots/' }
+    maven { url 'http://repo.spring.io/snapshot/' }
+    maven { url 'http://repo.spring.io/milestone/' }
+    maven { url 'http://repo.spring.io/libs-release/' }
+}
+
+// To see the dependency tree run gradle dependenciew
+dependencies {
+    
+    compile ('org.springframework.boot:spring-boot-starter-log4j:1.1.8.RELEASE')
+
+    compile ('org.springframework.boot:spring-boot-starter-web:1.1.8.RELEASE'){
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+      }
+    
+    compile ('org.springframework.boot:spring-boot-starter-actuator:1.1.8.RELEASE'){
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+      }
+     
+    compile(
+        
+        
+        
+        // SPRING CLOUD LIBRARIES
+        [group: 'org.springframework.cloud', name: 'spring-cloud-starter', version: '1.0.0.M1'],
+
+		[group: 'org.webjars', name: 'bootstrap', version: '3.0.3', changing: true],
+		[group: 'org.webjars', name: 'jquery', version: '2.0.3-1', changing: true],
+		//[group: 'javax.ws.rs', name: 'jquery', version: '2.0.3-1', changing: true],
+
+        
+        // General
+        [group: 'org.apache.commons', name: 'commons-lang3', version: '3.3.2', changing: true],
+        [group: 'commons-pool', name: 'commons-pool', version: '1.6', changing: true],
+        [group: 'javax.ws.rs', name: 'javax.ws.rs-api', version: '2.0', changing: true]
+    )
+    
+   
+    testCompile(
+       
+        [group: 'org.springframework.boot', name:  'spring-boot-starter-test'],
+        
+        [group: 'org.jmockit', name:  'jmockit', version:  '1.11'],
+        [group: 'org.springframework', name: 'spring-test', version: '4.1.0.RELEASE'],
+        [group: 'junit', name: 'junit', version: '4.11'],
+        [group: 'org.mockito', name: 'mockito-all', version: '1.9.5'],
+        [group: 'org.powermock', name: 'powermock-module-junit4', version: '1.5.5'],
+        [group: 'org.powermock', name: 'powermock-api-mockito', version: '1.5.5'],
+        [group: 'org.powermock', name: 'powermock-api-easymock', version: '1.5.5']
+   )
+    
+    task wrapper(type: Wrapper) {
+        gradleVersion = '2.1'
+    }
+	
+bootRepackage {
+	mainClass = 'com.digitalriver.artifact.NickArtifactServer'
+	withJarTask = tasks['execJar']
+}
+    
+}
+
